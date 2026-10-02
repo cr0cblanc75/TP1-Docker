@@ -1,0 +1,92 @@
+services:
+  backend:
+    build: ./backend
+    # Image Docker contenant l'API backend
+    image: eugenelallain/tp1-backend-api:1.0
+
+    # Le backend est connecté au réseau backend-network
+    networks:
+      - backend-network
+
+    # Le backend dépend de la base de données
+    # Docker démarre donc la database avant le backend
+    depends_on:
+      - database
+
+    # Redémarre automatiquement le conteneur
+    # sauf s'il a été arrêté manuellement
+    restart: unless-stopped
+
+
+
+  database:
+    build: ./db
+    # Image Docker contenant PostgreSQL
+    image: eugenelallain/tp1-db:1.0
+
+    # La base de données est uniquement connectée
+    # au réseau utilisé par le backend
+    networks:
+      - backend-network
+
+    # Permet de conserver les données PostgreSQL
+    # même si le conteneur est supprimé/recréé
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    # Redémarre automatiquement le conteneur
+    restart: unless-stopped
+
+
+  httpd:
+    build: ./http
+    # Image Docker contenant le frontend
+    # probablement servi par Apache/httpd
+    image: eugenelallain/tp1-front:1.0
+
+    # Rend le port 80 du conteneur accessible
+    # sur le port 8080 de la machine
+    #
+    # http://localhost:8080
+    ports:
+      - "80:80"
+
+    # Le frontend est connecté aux DEUX réseaux :
+    # - frontend-network : réseau destiné au frontend
+    # - backend-network  : permet de communiquer avec le backend
+    networks:
+      - frontend-network
+      - backend-network
+
+    # Le frontend dépend du backend
+    # Le backend sera donc démarré avant httpd
+    depends_on:
+      - backend
+
+    # Redémarre automatiquement le conteneur
+    restart: unless-stopped
+
+
+# =========================
+# NETWORKS
+# =========================
+
+networks:
+
+  # Réseau utilisé par le frontend
+  frontend-network:
+
+  # Réseau permettant aux services backend
+  # de communiquer entre eux
+  backend-network:
+
+
+# =========================
+# VOLUMES
+# =========================
+
+volumes:
+
+  # Volume Docker permettant de persister
+  # les données de PostgreSQL
+  postgres-data:
